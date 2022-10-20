@@ -46,10 +46,9 @@ export const getServerSideProps: GetServerSideProps = async () => {
     }
 
     const posts = rawPosts
-      .filter(post => post.type === 'photo')
+      .filter(post => post.photos && post.photos[0])
       .sort((a: any, b: any) => b.timestamp - a.timestamp)
       .map(post => {
-        console.log(post.timestamp)
         const image = post.photos[0].alt_sizes.find(
           (i: any) => i.width >= 500 && i.width <= 1000
         )

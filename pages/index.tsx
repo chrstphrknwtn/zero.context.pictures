@@ -32,12 +32,14 @@ const Home = ({ posts }: Props) => {
 export const getServerSideProps: GetServerSideProps = async () => {
   try {
     const requests = ['0x001a', '0x002b', '0x001e', '0x003d'].map(blogName => {
-      return axios(
-        `https://api.tumblr.com/v2/blog/${blogName}.tumblr.com/posts?api_key=${process.env.TUMBLR_API_KEY}`
-      )
+      return [0, 20, 40, 60, 80, 100, 120, 140].map(offset => {
+        return axios(
+          `https://api.tumblr.com/v2/blog/${blogName}.tumblr.com/posts?api_key=${process.env.TUMBLR_API_KEY}&npf=true&offset=${offset}`
+        )
+      })
     })
 
-    const responses = await Promise.all(requests)
+    const responses = await Promise.all(requests.flat())
     const tumblrs = responses.map(response => response.data.response)
 
     let rawPosts: any[] = []
@@ -46,18 +48,24 @@ export const getServerSideProps: GetServerSideProps = async () => {
     }
 
     const posts = rawPosts
-      .filter(post => post.photos && post.photos[0])
+      .filter(post => post.content.length > 0 || post.trail.length > 0)
       .sort((a: any, b: any) => b.timestamp - a.timestamp)
       .map(post => {
-        const image = post.photos[0].alt_sizes.find(
-          (i: any) => i.width >= 500 && i.width <= 1000
+        const content =
+          post.content.length > 0 ? post.content : post.trail[0]?.content
+
+        const images = content.find((item: any) => item.type === 'image')
+        const image = images.media.find(
+          (i: any) => i.width >= 500 && i.width <= 800
         )
+
         return {
           id: post.id,
           image,
           url: post.post_url
         }
       })
+      .filter(post => post.image)
 
     return { props: { posts } }
   } catch (error: any) {
